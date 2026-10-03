@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,6 +15,11 @@ from harness.report import render_markdown
 from harness.runner import load_cases, results_as_dicts, run, summarise
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def safe_filename(name: str) -> str:
+    """Model IDs can contain / and : (e.g. 'vendor/model:free'). Keep filenames portable."""
+    return re.sub(r"[^A-Za-z0-9._-]+", "_", name)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -72,7 +78,7 @@ def main(argv: list[str] | None = None) -> int:
     }
 
     args.out.mkdir(parents=True, exist_ok=True)
-    stem = f"{now:%Y%m%d-%H%M%S}-{provider.name}-{provider.model}-{defence.name}".replace("/", "_")
+    stem = safe_filename(f"{now:%Y%m%d-%H%M%S}-{provider.name}-{provider.model}-{defence.name}")
     md_path, json_path = args.out / f"{stem}.md", args.out / f"{stem}.json"
     md_path.write_text(render_markdown(summary, meta))
     json_path.write_text(json.dumps({"meta": meta, "summary": summary, "trials": results_as_dicts(results)}, indent=2))

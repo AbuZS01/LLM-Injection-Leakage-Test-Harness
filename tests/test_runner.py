@@ -61,3 +61,10 @@ def test_errors_are_excluded_not_counted():
     summary = summarise(cases, run(cases, Broken(), get_defence("none"), trials=2))
     assert summary["errors"] == 6
     assert summary["overall"]["rate"] is None
+
+
+def test_report_filenames_are_portable():
+    from harness.cli import safe_filename
+
+    assert safe_filename("20261003-openrouter-qwen/qwen3-27b:free-none") == "20261003-openrouter-qwen_qwen3-27b_free-none"
+    assert safe_filename('a"b<c>d|e*f?g') == "a_b_c_d_e_f_g"
