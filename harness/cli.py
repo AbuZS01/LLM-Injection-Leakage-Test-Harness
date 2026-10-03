@@ -21,8 +21,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="command", required=True)
 
     r = sub.add_parser("run", help="Run test cases against the target app")
-    r.add_argument("--provider", required=True, choices=["mock-echo", "mock-refuse", "anthropic", "openai-compatible"])
-    r.add_argument("--model", help="Model ID (required for openai-compatible)")
+    r.add_argument("--provider", required=True, choices=["mock-echo", "mock-refuse", "anthropic", "openai-compatible", "openrouter"])
+    r.add_argument("--model", help="Model ID (required for openai-compatible and openrouter)")
     r.add_argument("--base-url", help="Base URL for an OpenAI-compatible API")
     r.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], help="Anthropic effort level")
     r.add_argument("--defence", default="none", choices=sorted(DEFENCES))
