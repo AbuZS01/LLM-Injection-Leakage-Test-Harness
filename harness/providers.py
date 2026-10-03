@@ -78,13 +78,13 @@ class OpenAICompatibleProvider(Provider):
 
     name = "openai-compatible"
 
-    def __init__(self, model: str | None = None, base_url: str | None = None):
+    def __init__(self, model: str | None = None, base_url: str | None = None, api_key: str | None = None):
         if not model:
-            raise ValueError("--model is required for the openai-compatible provider")
+            raise ValueError(f"--model is required for the {self.name} provider")
         from openai import OpenAI
 
         super().__init__(model)
-        self.client = OpenAI(base_url=base_url or os.environ.get("OPENAI_BASE_URL"), max_retries=4)
+        self.client = OpenAI(base_url=base_url or os.environ.get("OPENAI_BASE_URL"), api_key=api_key, max_retries=4)
 
     def complete(self, system: str, user: str) -> Completion:
         resp = self.client.chat.completions.create(
@@ -100,6 +100,19 @@ class OpenAICompatibleProvider(Provider):
         )
 
 
+class OpenRouterProvider(OpenAICompatibleProvider):
+    """OpenRouter: one key, many models. Model IDs look like 'vendor/model' (see openrouter.ai/models)."""
+
+    name = "openrouter"
+    BASE_URL = "https://openrouter.ai/api/v1"
+
+    def __init__(self, model: str | None = None):
+        key = os.environ.get("OPENROUTER_API_KEY")
+        if not key:
+            raise ValueError("Set OPENROUTER_API_KEY to use the openrouter provider")
+        super().__init__(model, base_url=self.BASE_URL, api_key=key)
+
+
 def get_provider(name: str, model: str | None = None, base_url: str | None = None, effort: str | None = None) -> Provider:
     if name == "mock-echo":
         return MockEcho(model)
@@ -109,4 +122,6 @@ def get_provider(name: str, model: str | None = None, base_url: str | None = Non
         return AnthropicProvider(model, effort=effort)
     if name == "openai-compatible":
         return OpenAICompatibleProvider(model, base_url=base_url)
+    if name == "openrouter":
+        return OpenRouterProvider(model)
     raise ValueError(f"Unknown provider {name!r}")

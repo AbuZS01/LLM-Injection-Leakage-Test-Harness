@@ -6,9 +6,14 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      provider:
+        description: "Provider to test"
+        type: choice
+        options: [openrouter, anthropic]
+        default: openrouter
       model:
-        description: "Anthropic model ID to test"
-        default: "claude-opus-5-5"
+        description: "Model ID (OpenRouter IDs look like vendor/model)"
+        required: true
       trials:
         description: "Trials per case"
         default: "5"
@@ -33,13 +38,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt
-      - run: python -m harness run --provider anthropic --model "${{ inputs.model }}" --trials "${{ inputs.trials }}"
+      - run: python -m harness run --provider "${{ inputs.provider }}" --model "${{ inputs.model }}" --trials "${{ inputs.trials }}"
       - run: cat reports/*.md >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:

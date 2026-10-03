@@ -50,7 +50,7 @@ Design choices that matter:
 ```bash
 git clone https://github.com/AbuZS01/LLM-Injection-Leakage-Test-Harness.git
 cd LLM-Injection-Leakage-Test-Harness
-pip install -r requirements.txt          # pyyaml + anthropic
+pip install -r requirements.txt          # pyyaml, anthropic, openai
 
 # Offline self-test (free, no key)
 pip install -r requirements-dev.txt && python -m pytest -q
@@ -60,8 +60,11 @@ python -m harness run --provider mock-echo --trials 1
 export ANTHROPIC_API_KEY=...
 python -m harness run --provider anthropic --model claude-opus-5-5 --trials 5
 
-# Live run against any OpenAI-compatible API (OpenAI, Gemini's OpenAI-compatible endpoint, OpenRouter, ...)
-pip install openai
+# Live run via OpenRouter (one key, many models; copy the model ID from openrouter.ai/models)
+export OPENROUTER_API_KEY=...
+python -m harness run --provider openrouter --model <vendor/model> --trials 5
+
+# Live run against any other OpenAI-compatible API (OpenAI, Gemini's OpenAI-compatible endpoint, ...)
 export OPENAI_API_KEY=...
 python -m harness run --provider openai-compatible --model <model-id> [--base-url <endpoint>]
 ```
@@ -80,12 +83,13 @@ Each run writes `reports/<timestamp>-<provider>-<model>-<defence>.md` (the score
 
 ## CI
 
-`.github/workflows/ci.yml` runs the unit tests and an offline smoke run on every push. A manually triggered `live-run` job runs the real suite against Claude, using the `ANTHROPIC_API_KEY` repository secret, and attaches the scorecard to the run summary. It's manual-only so API spend is always a deliberate choice.
+`.github/workflows/ci.yml` runs the unit tests and an offline smoke run on every push. A manually triggered `live-run` job runs the real suite via OpenRouter or Anthropic, using the `OPENROUTER_API_KEY` or `ANTHROPIC_API_KEY` repository secret, and attaches the scorecard to the run summary. It's manual-only so API spend is always a deliberate choice.
 
 ## Responsible use
 
 - The harness only attacks an application its operator owns, built on an API they're authorised to use. It doesn't target model providers' own safety systems.
 - Payloads try to extract a fake canary token or synthetic personal data, or to make the app print a harmless code. Nothing asks the model for harmful content.
+- Some providers, including free models on OpenRouter, may log or train on prompts. The suite only contains synthetic data, so that's acceptable here. Never add real personal data or real secrets to test cases.
 - Check your provider's usage policy before running live tests. Testing your own application's defences is the use case this is built for.
 
 ## Known limitations
