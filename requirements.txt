@@ -1,0 +1,4 @@
+pyyaml>=6.0
+# Install the SDK for the provider you use:
+anthropic>=1.0
+# openai>=1.0
