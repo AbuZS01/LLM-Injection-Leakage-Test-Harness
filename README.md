@@ -48,7 +48,8 @@ Design choices that matter:
 ## Quick start
 
 ```bash
-cd llm-injection-harness
+git clone https://github.com/AbuZS01/LLM-Injection-Leakage-Test-Harness.git
+cd LLM-Injection-Leakage-Test-Harness
 pip install -r requirements.txt          # pyyaml + anthropic
 
 # Offline self-test (free, no key)
@@ -79,7 +80,7 @@ Each run writes `reports/<timestamp>-<provider>-<model>-<defence>.md` (the score
 
 ## CI
 
-`.github/workflows/llm-harness.yml` runs the unit tests and an offline smoke run on every push. A manually triggered `live-run` job runs the real suite against Claude, using the `ANTHROPIC_API_KEY` repository secret, and attaches the scorecard to the run summary. It's manual-only so API spend is always a deliberate choice.
+`.github/workflows/ci.yml` runs the unit tests and an offline smoke run on every push. A manually triggered `live-run` job runs the real suite against Claude, using the `ANTHROPIC_API_KEY` repository secret, and attaches the scorecard to the run summary. It's manual-only so API spend is always a deliberate choice.
 
 ## Responsible use
 

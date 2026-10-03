@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Anthropic model ID to test"
+        default: "claude-opus-5-5"
+      trials:
+        description: "Trials per case"
+        default: "5"
+
+jobs:
+  self-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -q
+      - name: Harness smoke run (offline mock, no API key)
+        run: python -m harness run --provider mock-refuse --trials 1 --fail-above 0
+
+  live-run:
+    # Manual only, so API spend is always a deliberate choice.
+    if: github.event_name == 'workflow_dispatch'
+    needs: self-test
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - run: python -m harness run --provider anthropic --model "${{ inputs.model }}" --trials "${{ inputs.trials }}"
+      - run: cat reports/*.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scorecard
+          path: reports/
