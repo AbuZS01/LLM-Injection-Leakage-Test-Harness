@@ -61,3 +61,24 @@ def test_errors_are_excluded_not_counted():
     summary = summarise(cases, run(cases, Broken(), get_defence("none"), trials=2))
     assert summary["errors"] == 6
     assert summary["overall"]["rate"] is None
+
+
+def test_report_filenames_are_portable():
+    from harness.cli import safe_filename
+
+    assert safe_filename("20261003-openrouter-qwen/qwen3-27b:free-none") == "20261003-openrouter-qwen_qwen3-27b_free-none"
+    assert safe_filename('a"b<c>d|e*f?g') == "a_b_c_d_e_f_g"
+
+
+def test_cli_fails_and_explains_when_every_trial_errors(tmp_path, monkeypatch, capsys):
+    import harness.cli as cli
+
+    class Broken(MockRefuse):
+        def complete(self, system, user):
+            raise RuntimeError("429 rate limited")
+
+    monkeypatch.setattr(cli, "get_provider", lambda *a, **k: Broken())
+    assert main(["run", "--provider", "mock-refuse", "--trials", "1", "--only", "D01", "--out", str(tmp_path)]) == 1
+    out = capsys.readouterr().out
+    assert "1/1 trials errored" in out
+    assert "429 rate limited" in out

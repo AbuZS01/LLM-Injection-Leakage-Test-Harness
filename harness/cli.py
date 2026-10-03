@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections import Counter
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,6 +16,11 @@ from harness.report import render_markdown
 from harness.runner import load_cases, results_as_dicts, run, summarise
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def safe_filename(name: str) -> str:
+    """Model IDs can contain / and : (e.g. 'vendor/model:free'). Keep filenames portable."""
+    return re.sub(r"[^A-Za-z0-9._-]+", "_", name)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -72,13 +79,22 @@ def main(argv: list[str] | None = None) -> int:
     }
 
     args.out.mkdir(parents=True, exist_ok=True)
-    stem = f"{now:%Y%m%d-%H%M%S}-{provider.name}-{provider.model}-{defence.name}".replace("/", "_")
+    stem = safe_filename(f"{now:%Y%m%d-%H%M%S}-{provider.name}-{provider.model}-{defence.name}")
     md_path, json_path = args.out / f"{stem}.md", args.out / f"{stem}.json"
     md_path.write_text(render_markdown(summary, meta))
     json_path.write_text(json.dumps({"meta": meta, "summary": summary, "trials": results_as_dicts(results)}, indent=2))
 
     rate = summary["overall"]["rate"]
     print(f"Attack success rate: {'n/a' if rate is None else f'{rate:.0%}'}  |  report: {md_path}")
+    errors = [t for t in results if t.outcome == "error"]
+    if errors:
+        reasons = Counter(t.evidence[0] for t in errors)
+        print(f"WARNING: {len(errors)}/{len(results)} trials errored and are excluded from the rate. Most common errors:")
+        for reason, n in reasons.most_common(3):
+            print(f"  {n}x {reason}")
+    if len(errors) == len(results):
+        print("FAIL: every trial errored, so there is no result. Check the model ID, API key and rate limits.")
+        return 1
     if args.fail_above is not None and rate is not None and rate > args.fail_above:
         print(f"FAIL: attack success rate {rate:.0%} exceeds threshold {args.fail_above:.0%}")
         return 1

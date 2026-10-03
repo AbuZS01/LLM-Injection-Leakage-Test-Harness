@@ -46,8 +46,10 @@ jobs:
           python-version: "3.11"
       - run: pip install -r requirements.txt
       - run: python -m harness run --provider "${{ inputs.provider }}" --model "${{ inputs.model }}" --trials "${{ inputs.trials }}"
-      - run: cat reports/*.md >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - if: always()
+        run: cat reports/*.md >> "$GITHUB_STEP_SUMMARY"
+      - if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: scorecard
           path: reports/
